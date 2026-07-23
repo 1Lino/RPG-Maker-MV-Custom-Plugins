@@ -1,12 +1,11 @@
 /*:
- * @plugindesc Sistema de diálogo dinâmico.
+ * @plugindesc Administrador de Eventos customizado.
  * @author Lino
  *
  * @help
- * Este plugin permite alterar os diálogos do jogo dinamicamente com base
- * em informações de arquivo JSON. Você deve pôr o nome do arquivo no parâmetro.
- * Este plugin é um protótipo, e poderá sofrer várias mudanças, e inclusive ser 
- * separado em vários outros, se for julgado necessário, para fins de organização.
+ * Este add-on é basicamente um conjunto de funções customizadas que lidam com diversos tipos de eventos.
+ * O objetivo é reduzir drasticamente o uso de páginas longas de configurações de evento e deixar isso tudo pro backend.
+ * O dev usará somente funções e o código faz o resto.
  * 
  * @param Dialogue Picker
  * @text PATH: data/dialogues/
@@ -14,86 +13,32 @@
  * @desc Insira o nome do JSON na caixa de texto. O arquivo deve ficar neste caminho: "project_name/data/dialogues/".
  *
  */
- 
-// Criação do caminho para o arquivo:
-const params = PluginManager.parameters("LINO_EventManager"); // seleciona os parâmetros deste plugin.
-const fileName = params["Dialogue Picker"]; // puxa o conteúdo da caixa de texto Dialogue Picker, da interface do plugin.
-const path = "data/dialogues/" + fileName + ".json"; // cria o caminho
 
-function showConsole(){
-	console.log(path);
-}
+var params = PluginManager.parameters("LINO_EventManager"); // seleciona os parâmetros deste plugin.
+var fileName = params["Dialogue Picker"]; // puxa o conteúdo da caixa de texto Dialogue Picker, da interface do plugin.
+var path = "data/dialogues/" + fileName + ".json"; // cria o caminho
 
-// função responsável pelo carregamento do arquivo do path especificado.
-function loadDiagJSON(path){
-	return new Promise((resolve, reject) => {
-		const request = new XMLHttpRequest();
-		request.open('GET', path);
-		request.send(); 
-		request.onerror = reject;
+// helper que guardará todas as variáveis e métodos relacionados ao diálogo dos personagens.
+window.Dialog = {};
 
-		request.onload = () => {
-			if (request.status < 400){ // status http 200: success; status http 400: client error.
-			}
-				resolve(JSON.parse(request.responseText));
-		};
-	});
-}
+Dialog.dialogs = null; 
 
+// método responsável pelo carregamento do arquivo json:
+Dialog.loadDialogs = function() {
+    if (!this.dialogs) {
+        var fs = require("fs");
+        var text = fs.readFileSync(path, "utf8");
+        this.dialogs = JSON.parse(text);
+    }
+    return this.dialogs;
+};
 
-let diagData = null;
+// os dados puxados do json são de acordo com os argumentos que o dev passar a este método.
+// "scene" trata-se da cena atual, "character" trata do personagem daquela cena, e "dialog" do identificador do texto específico daquele personagem para aquela cena.
+Dialog.showDialog = function(scene, character, dialog) {
+    var dialogs = this.loadDialogs();
 
-// esta função deve ser chamada globalmente num evento do jogo, para que os dados de diálogo sejam carregados paralelamente aos demais eventos.
-async function loadAllDialogs() {
-    diagData = await loadDiagJSON(path);
-}
-
-function getDiag(scene, character, dialogue) {
-    const lines = diagData[scene][character][dialogue];
-	
-	const fullText = lines.join("\n");
-
-    $gameMessage.add(fullText);
-
-	$gameMessage.newPage(); // faz com que a messagebox atual termine e passe pra próxima página (o próximo diálogo começará em uma página diferente, no caso)
-}
-
-function setEventDirectionFix(eventId, state){
-	const event = $gameMap.event(eventId);
-		if (event) {
-			event.setDirectionFix(state);
-		}
-}
-
-function resetEventDirectionFix(eventId){
-	const TerminateMessage = Window_Message.prototype.terminateMessage;
-
-	Window_Message.prototype.terminateMessage = function() {
-		TerminateMessage.call(this); // this se refere à mensagem atual no display/window.
-
-		setEventDirectionFix(eventId, false);
-	};
-}
-
-function moveTo(npc, target){
-	Game_Character.prototype.moveTowardTarget = function(target) {
-		if (!target) return;
-		if (this.isMoving()) return; // previne o npc de teleportar direto pro target (por conta que a função roda a cada frame )
-
-		const direction = this.findDirectionTo(target.x, target.y);
-
-		if (direction > 0) {
-			this.moveStraight(direction);
-		}
-	};
-	
-	npc.moveTowardTarget(target);
-}
-
-
-// Some basic documentation (documentação básica):
-// new XMLHttpRequest(): is a request object, used to fetch files.
-// .open('GET', path): opens a http protocol with GET method: it's like doing a GET request to a server, but to a file path
-// .send(): after the protocol is opened, we send the request.
-// .onerror: not mandatory, it just returns something if the request fails. You can use the "reject" parameter from the promise.
-// .onload: when the request is loaded, pull the response from it (take notice that the "onload" event is asynchronous, meaning that it will only go to the event loop after it loads, that's why we should wait for it to resolve the promise, then returning the javascript object parsed from the json file).
+    dialogs[scene][character][dialog].forEach(function(line) {
+        $gameMessage.add(line);
+    });
+};
