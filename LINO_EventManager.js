@@ -26,7 +26,7 @@ Dialog.dialogs = null;
 // método responsável pelo carregamento do arquivo json:
 Dialog.loadDialogs = function() {
     if (!this.dialogs) {
-        var fs = require("fs");
+        var fs = require("fs"); // fs = file system
         var text = fs.readFileSync(path, "utf8");
         this.dialogs = JSON.parse(text);
     }
@@ -38,7 +38,49 @@ Dialog.loadDialogs = function() {
 Dialog.showDialog = function(scene, character, dialog) {
     var dialogs = this.loadDialogs();
 
-    dialogs[scene][character][dialog].forEach(function(line) {
-        $gameMessage.add(line);
+    dialogs[scene][character][dialog].forEach(function(line, index) {
+        if (index === 0)
+            $gameMessage.add(`\\C[0]${character}\\C[0]\n${line}`); // torna a primeira linha o nome do personagem, cor de índice 0. 
+        else
+            $gameMessage.add(line);
     });
 };
+
+// "state" é true ou false. É pra ser usado antes de qualquer diálogo com qualquer npc
+Dialog.setEventDirectionFix = function(npc, state){
+    if (npc) {
+        npc.setDirectionFix(state);
+    }
+}
+
+// É pra ser usado após um diálogo.
+Dialog.resetEventDirectionFix = function(npc){
+	const TerminateMessage = Window_Message.prototype.terminateMessage;
+
+	Window_Message.prototype.terminateMessage = function() {
+		TerminateMessage.call(this); // 'this' se refere à mensagem atual no display/window.
+
+		Dialog.setEventDirectionFix(npc, false);
+	};
+}
+
+
+// Métodos que envolvem ação de personagem, movimentos, etc.
+var Action = {};
+
+// Esta função deve ser chamada numa página de evento separada do npc, em modo de execução paralela.
+Action.moveTo = function(npc, target){
+    Game_Character.prototype.moveTowardTarget = function(target) {
+		if (!target) return;
+		if (this.isMoving()) return; // previne teleporte
+
+		const direction = this.findDirectionTo(target.x, target.y);
+
+		if (direction > 0) {
+			this.moveStraight(direction);
+		}
+	};
+	
+	npc.moveTowardTarget(target);
+    
+}
