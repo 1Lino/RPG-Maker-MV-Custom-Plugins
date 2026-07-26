@@ -21,10 +21,10 @@ var path = "data/dialogues/" + fileName + ".json"; // cria o caminho
 // helper que guardará todas as variáveis e métodos relacionados ao diálogo dos personagens.
 window.Dialog = {};
 
-Dialog.dialogs = null; 
+Dialog.dialogs = null;
 
 // método responsável pelo carregamento do arquivo json:
-Dialog.loadDialogs = function() {
+Dialog.loadDialogs = function () {
     if (!this.dialogs) {
         var fs = require("fs"); // fs = file system
         var text = fs.readFileSync(path, "utf8");
@@ -34,34 +34,35 @@ Dialog.loadDialogs = function() {
 };
 
 // os dados puxados do json são de acordo com os argumentos que o dev passar a este método.
-// "scene" trata-se da cena atual, "character" trata do personagem daquela cena, e "dialog" do identificador do texto específico daquele personagem para aquela cena.
-Dialog.showDialog = function(scene, character, dialog) {
+// "scene" trata-se da cena atual, "character" trata do personagem daquela cena, e "dialog" do identificador do texto específico daquele personagem para aquela cena. "interpreter" trata do contexto atual em que showDialog é usado, para que setWaitMode possa ser utilizado. Além disso, setWaitMode só 
+Dialog.showDialog = function (interpreter, scene, character, dialog) {
     var dialogs = this.loadDialogs();
 
-    dialogs[scene][character][dialog].forEach(function(line, index) {
+    dialogs[scene][character][dialog].forEach(function (line, index) {
         if (index === 0)
             $gameMessage.add(`\\C[0]${character}\\C[0]\n${line}`); // torna a primeira linha o nome do personagem, cor de índice 0. 
         else
             $gameMessage.add(line);
     });
+    interpreter.setWaitMode("message");
 };
 
 // "state" é true ou false. É pra ser usado antes de qualquer diálogo com qualquer npc
-Dialog.setEventDirectionFix = function(npc, state){
+Dialog.setEventDirectionFix = function (npc, state) {
     if (npc) {
         npc.setDirectionFix(state);
     }
 }
 
 // É pra ser usado após um diálogo.
-Dialog.resetEventDirectionFix = function(npc){
-	const TerminateMessage = Window_Message.prototype.terminateMessage;
+Dialog.resetEventDirectionFix = function (npc) {
+    const TerminateMessage = Window_Message.prototype.terminateMessage;
 
-	Window_Message.prototype.terminateMessage = function() {
-		TerminateMessage.call(this); // 'this' se refere à mensagem atual no display/window.
+    Window_Message.prototype.terminateMessage = function () {
+        TerminateMessage.call(this); // 'this' se refere à mensagem atual no display/window.
 
-		Dialog.setEventDirectionFix(npc, false);
-	};
+        Dialog.setEventDirectionFix(npc, false);
+    };
 }
 
 
@@ -69,18 +70,54 @@ Dialog.resetEventDirectionFix = function(npc){
 var Action = {};
 
 // Esta função deve ser chamada numa página de evento separada do npc, em modo de execução paralela.
-Action.moveTo = function(npc, target){
-    Game_Character.prototype.moveTowardTarget = function(target) {
-		if (!target) return;
-		if (this.isMoving()) return; // previne teleporte
+Action.moveTo = function (npc, target) {
+    Game_Character.prototype.moveTowardTarget = function (target) {
+        if (!target) return;
+        if (this.isMoving()) return; // previne teleporte
 
-		const direction = this.findDirectionTo(target.x, target.y);
+        const direction = this.findDirectionTo(target.x, target.y);
 
-		if (direction > 0) {
-			this.moveStraight(direction);
-		}
-	};
-	
-	npc.moveTowardTarget(target);
-    
+        // checa se o sistema de mensagens do jogo não está ocupado e se a direção encontrada para o target é maior que 0.
+        // a primeira condição impede que o npc mova durante o diálogo.
+        if (!$gameMessage.isBusy() && direction > 0) {
+            this.moveStraight(direction);
+        }
+    };
+
+    npc.moveTowardTarget(target);
+
 }
+
+// "interpreter" deve ser "this" (se refere ao contexto atual do evento que utiliza esse método).
+// "character" é onde o balão aparecerá (Ex.: $gamePlayer), e "balloonId" é o id dos balões que vai de 1 a 10
+// 1	Exclamation (!)
+// 2	Question (?)
+// 3	Music Note
+// 4	Heart
+// 5	Anger
+// 6	Sweat
+// 7	Frustration
+// 8	Silence
+// 9	Light Bulb
+// 10	Zzz
+Action.showBalloon = function (interpreter, character, balloonId) {
+    interpreter._character = character; // define o alvo do balão.
+    character.requestBalloon(balloonId); // chama o balão com o id especificado (ex.: 1 -> exclamação; 6 -> suor).
+    interpreter.setWaitMode("balloon"); // espera o término da animação do balão no alvo definido.
+}
+
+// TODO: atualmente uso este bloco de código para mudar o estado do switch conforme verificamos se o personagem chegou ou não ao destino:
+// deve ser transformado em um método que recebe o evento e o destino do movimento para mudar o switch de acordo com isso. Isto é para evitar "race condition" (guardarei isto em mente, pois outros sistemas podem ser afetados com o mesmo problema)
+if (mageGirl.x === bookshelf.x && mageGirl.y === bookshelf.y) {
+    $gameSelfSwitches.setValue([2, 2, "B"], true); // [mapId, eventId, switch]
+}
+
+
+// ######### DOCUMENTAÇÃO SIMPLES #############
+// Nota sobre setWaitMode("message") e o funcionamento do Game Interpreter do RPG Maker MV:
+
+// setWaitMode("message") não interrompe imediatamente a execução do JavaScript atual. Ele apenas informa ao Game_Interpreter que, após o término do comando de evento em execução, o interpretador deverá aguardar o fechamento da caixa de diálogo antes de prosseguir para o próximo comando.
+
+// Isso significa que, dentro de um único Script Call, todo o código continuará sendo executado normalmente, mesmo após a chamada de setWaitMode("message"). Assim, comandos como requests de balão, animações ou qualquer outra ação executada depois dessa chamada ocorrerão imediatamente, podendo aparecer enquanto a mensagem ainda está sendo exibida.
+
+// Para que a espera tenha efeito, a lógica deve ser dividida em comandos de evento distintos (ou implementada de forma assíncrona pelo próprio plugin), permitindo que o interpretador processe o estado de espera antes de executar a próxima ação.
