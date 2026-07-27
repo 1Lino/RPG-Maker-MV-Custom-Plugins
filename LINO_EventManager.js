@@ -69,6 +69,7 @@ Dialog.resetEventDirectionFix = function (npc) {
 // Métodos que envolvem ação de personagem, movimentos, etc.
 var Action = {};
 
+//moveTo usa pathfinding do RPG Maker MV para encontrar o caminho.
 // Esta função deve ser chamada numa página de evento separada do npc, em modo de execução paralela.
 Action.moveTo = function (npc, target) {
     Game_Character.prototype.moveTowardTarget = function (target) {
@@ -88,6 +89,62 @@ Action.moveTo = function (npc, target) {
 
 }
 
+//move é o modo "manual" de fazer o npc se mover. O método recebe uma array de tuplas, onde o primeiro índice de cada tupla se refere à direção e o segundo índice se refere à quantidade de tiles que o npc se moverá naquela direção.
+// Ex.: moveArr = [["up", 2], ["right", 3]...] 
+Action.move = function(interpreter, npc, moveArr) {
+    const moveRoute = [];
+
+    for (const [direction, amount] of moveArr) {
+
+        let code;
+
+        switch (direction) {
+            case "up":
+                code = Game_Character.ROUTE_MOVE_UP;
+                break;
+
+            case "down":
+                code = Game_Character.ROUTE_MOVE_DOWN;
+                break;
+
+            case "left":
+                code = Game_Character.ROUTE_MOVE_LEFT;
+                break;
+
+            case "right":
+                code = Game_Character.ROUTE_MOVE_RIGHT;
+                break;
+
+            default:
+                continue;
+        }
+
+        for (let i = 0; i < amount; i++) {
+            moveRoute.push({
+                code: code,
+                parameters: []
+            });
+        }
+    }
+
+    moveRoute.push({
+        code: Game_Character.ROUTE_END, // ROUTE_END encerra a rota
+        parameters: []
+    });
+
+    console.log(moveRoute);
+
+    npc.forceMoveRoute({
+        list: moveRoute,
+        repeat: false,
+        skippable: true,
+        wait: true
+    });
+
+    interpreter._character = npc;
+    interpreter.setWaitMode("route");
+};
+
 // "interpreter" deve ser "this" (se refere ao contexto atual do evento que utiliza esse método).
 // "character" é onde o balão aparecerá (Ex.: $gamePlayer), e "balloonId" é o id dos balões que vai de 1 a 10
 // 1	Exclamation (!)
@@ -101,16 +158,16 @@ Action.moveTo = function (npc, target) {
 // 9	Light Bulb
 // 10	Zzz
 Action.showBalloon = function (interpreter, character, balloonId) {
-    interpreter._character = character; // define o alvo do balão.
+    interpreter._character = character; // define o alvo do balão para o interpretador, sem isso, setWaitMode retorna erro de referência.
     character.requestBalloon(balloonId); // chama o balão com o id especificado (ex.: 1 -> exclamação; 6 -> suor).
     interpreter.setWaitMode("balloon"); // espera o término da animação do balão no alvo definido.
 }
 
 // TODO: atualmente uso este bloco de código para mudar o estado do switch conforme verificamos se o personagem chegou ou não ao destino:
 // deve ser transformado em um método que recebe o evento e o destino do movimento para mudar o switch de acordo com isso. Isto é para evitar "race condition" (guardarei isto em mente, pois outros sistemas podem ser afetados com o mesmo problema)
-if (mageGirl.x === bookshelf.x && mageGirl.y === bookshelf.y) {
-    $gameSelfSwitches.setValue([2, 2, "B"], true); // [mapId, eventId, switch]
-}
+// if (mageGirl.x === bookshelf.x && mageGirl.y === bookshelf.y) {
+//     $gameSelfSwitches.setValue([2, 2, "B"], true); // [mapId, eventId, switch]
+// }
 
 
 // ######### DOCUMENTAÇÃO SIMPLES #############
