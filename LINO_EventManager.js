@@ -163,11 +163,21 @@ Action.showBalloon = function (interpreter, character, balloonId) {
     interpreter.setWaitMode("balloon"); // espera o término da animação do balão no alvo definido.
 }
 
-// TODO: atualmente uso este bloco de código para mudar o estado do switch conforme verificamos se o personagem chegou ou não ao destino:
-// deve ser transformado em um método que recebe o evento e o destino do movimento para mudar o switch de acordo com isso. Isto é para evitar "race condition" (guardarei isto em mente, pois outros sistemas podem ser afetados com o mesmo problema)
-// if (mageGirl.x === bookshelf.x && mageGirl.y === bookshelf.y) {
-//     $gameSelfSwitches.setValue([2, 2, "B"], true); // [mapId, eventId, switch]
-// }
+var Event = {};
+
+Event.setSwitch = function(switchId, value){
+    $gameSwitches.setValue(switchId, value);
+}
+
+
+// deve ser transformado em um método serve pra evitar race condition, já que moveTo utiliza métodos em que setWaitMode não funciona.
+Action.isOnLocation = function(npc, target){
+    if (npc.x === target.x && npc.y === target.y) {
+        return true;
+    }
+    return false;
+}
+
 
 
 // ######### DOCUMENTAÇÃO SIMPLES #############
