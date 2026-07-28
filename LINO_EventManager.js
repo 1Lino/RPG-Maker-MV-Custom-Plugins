@@ -176,11 +176,11 @@ Game_Event.prototype.meetsConditions = function(page) {
     }
 
     // Look for a comment like:
-    // <self switch: QuestDone>
+    // <self switch: QuestDone>  deve estar na primeira linha da página, em um Comment
 
     for (const command of page.list) {
 
-        if (command.code === 108) { // Comment
+        if (command.code === 108) { 
             const match = command.parameters[0].match(
                 /<self switch:\s*(.+?)>/i
             );
