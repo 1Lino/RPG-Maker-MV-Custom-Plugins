@@ -145,22 +145,18 @@ Action.move = function(interpreter, npc, moveArr) {
     interpreter.setWaitMode("route");
 };
 
-// "interpreter" deve ser "this" (se refere ao contexto atual do evento que utiliza esse método).
-// "character" é onde o balão aparecerá (Ex.: $gamePlayer), e "balloonId" é o id dos balões que vai de 1 a 10
-// 1	Exclamation (!)
-// 2	Question (?)
-// 3	Music Note
-// 4	Heart
-// 5	Anger
-// 6	Sweat
-// 7	Frustration
-// 8	Silence
-// 9	Light Bulb
-// 10	Zzz
 Action.showBalloon = function (interpreter, character, balloonId) {
     interpreter._character = character; // define o alvo do balão para o interpretador, sem isso, setWaitMode retorna erro de referência.
     character.requestBalloon(balloonId); // chama o balão com o id especificado (ex.: 1 -> exclamação; 6 -> suor).
     interpreter.setWaitMode("balloon"); // espera o término da animação do balão no alvo definido.
+}
+
+// esse método serve pra evitar race condition, já que moveTo utiliza métodos em que setWaitMode não funciona, por conta que o pathfinding recalcula as coordenadas a cada frame, fazendo com que o npc pare e ande toda vez, o que confunde setWaitMode. Por isso, toda vez que moveTo é utilizado, isOnLocation deve ser utilizado também para verificar se o npc de fato chegou no lugar.
+Action.isOnLocation = function(npc, target){
+    if (npc.x === target.x && npc.y === target.y) {
+        return true;
+    }
+    return false;
 }
 
 var Event = {};
@@ -170,21 +166,36 @@ Event.setSwitch = function(switchId, value){
 }
 
 
-// deve ser transformado em um método serve pra evitar race condition, já que moveTo utiliza métodos em que setWaitMode não funciona.
-Action.isOnLocation = function(npc, target){
-    if (npc.x === target.x && npc.y === target.y) {
-        return true;
+const _meetsConditions = Game_Event.prototype.meetsConditions;
+
+Game_Event.prototype.meetsConditions = function(page) {
+
+    // First, let MV evaluate all the normal conditions.
+    if (!_meetsConditions.call(this, page)) {
+        return false;
     }
-    return false;
-}
 
+    // Look for a comment like:
+    // <self switch: QuestDone>
 
+    for (const command of page.list) {
 
-// ######### DOCUMENTAÇÃO SIMPLES #############
-// Nota sobre setWaitMode("message") e o funcionamento do Game Interpreter do RPG Maker MV:
+        if (command.code === 108) { // Comment
+            const match = command.parameters[0].match(
+                /<self switch:\s*(.+?)>/i
+            );
 
-// setWaitMode("message") não interrompe imediatamente a execução do JavaScript atual. Ele apenas informa ao Game_Interpreter que, após o término do comando de evento em execução, o interpretador deverá aguardar o fechamento da caixa de diálogo antes de prosseguir para o próximo comando.
+            if (match) {
+                const name = match[1];
 
-// Isso significa que, dentro de um único Script Call, todo o código continuará sendo executado normalmente, mesmo após a chamada de setWaitMode("message"). Assim, comandos como requests de balão, animações ou qualquer outra ação executada depois dessa chamada ocorrerão imediatamente, podendo aparecer enquanto a mensagem ainda está sendo exibida.
+                return $gameSelfSwitches.value([
+                    this._mapId,
+                    this._eventId,
+                    name
+                ]);
+            }
+        }
+    }
 
-// Para que a espera tenha efeito, a lógica deve ser dividida em comandos de evento distintos (ou implementada de forma assíncrona pelo próprio plugin), permitindo que o interpretador processe o estado de espera antes de executar a próxima ação.
+    return true;
+};
