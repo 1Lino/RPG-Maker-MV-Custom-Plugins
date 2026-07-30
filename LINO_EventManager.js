@@ -91,37 +91,20 @@ Action.moveTo = function (npc, target) {
 
 //move é o modo "manual" de fazer o npc se mover. O método recebe uma array de tuplas, onde o primeiro índice de cada tupla se refere à direção e o segundo índice se refere à quantidade de tiles que o npc se moverá naquela direção.
 // Ex.: moveArr = [["up", 2], ["right", 3]...] 
-Action.move = function(interpreter, npc, moveArr) {
+Action.move = function(interpreter, npc, moveSteps) {
     const moveRoute = [];
 
-    for (const [direction, amount] of moveArr) {
+    const dirMapping = {
+        "up" : Game_Character.ROUTE_MOVE_UP,
+        "down": Game_Character.ROUTE_MOVE_DOWN,
+        "left": Game_Character.ROUTE_MOVE_LEFT,
+        "right": Game_Character.ROUTE_MOVE_RIGHT
+    };
 
-        let code;
-
-        switch (direction) {
-            case "up":
-                code = Game_Character.ROUTE_MOVE_UP;
-                break;
-
-            case "down":
-                code = Game_Character.ROUTE_MOVE_DOWN;
-                break;
-
-            case "left":
-                code = Game_Character.ROUTE_MOVE_LEFT;
-                break;
-
-            case "right":
-                code = Game_Character.ROUTE_MOVE_RIGHT;
-                break;
-
-            default:
-                continue;
-        }
-
-        for (let i = 0; i < amount; i++) {
+    for (const [stepDirection, stepAmount] of moveSteps) {
+        for (let i = 0; i < stepAmount; i++) {
             moveRoute.push({
-                code: code,
+                code: dirMapping[stepDirection],
                 parameters: []
             });
         }
@@ -132,7 +115,7 @@ Action.move = function(interpreter, npc, moveArr) {
         parameters: []
     });
 
-    console.log(moveRoute);
+    // console.log(moveRoute); // fn + f8 pra confirmar a rota no console.
 
     npc.forceMoveRoute({
         list: moveRoute,
@@ -159,6 +142,7 @@ Action.isOnLocation = function(npc, target){
     return false;
 }
 
+
 var Event = {};
 
 Event.setSwitch = function(switchId, value){
@@ -166,8 +150,9 @@ Event.setSwitch = function(switchId, value){
 }
 
 
-const _meetsConditions = Game_Event.prototype.meetsConditions;
+const _meetsConditions = Game_Event.prototype.meetsConditions; // cria cópia da meetsConditions.
 
+// modifica o comportamento do evento original para que aceite self-switches para além dos A, B, C, D.
 Game_Event.prototype.meetsConditions = function(page) {
 
     // First, let MV evaluate all the normal conditions.
@@ -176,16 +161,16 @@ Game_Event.prototype.meetsConditions = function(page) {
     }
 
     // Look for a comment like:
-    // <self switch: QuestDone>  deve estar na primeira linha da página, em um Comment
+    // <self switch: QuestDone>  deve estar na primeira linha de um Comment em uma página.
 
-    for (const command of page.list) {
+    for (const command of page.list) { // itera sobre todas as páginas de um evento.
 
-        if (command.code === 108) { 
-            const match = command.parameters[0].match(
+        if (command.code === 108) { // 108 se refere ao comando Comment da interface.
+            const match = command.parameters[0].match(  // command.parameters[0] se refere à primeira linha do comentário.
                 /<self switch:\s*(.+?)>/i
             );
 
-            if (match) {
+            if (match) { 
                 const name = match[1];
 
                 return $gameSelfSwitches.value([
@@ -199,3 +184,23 @@ Game_Event.prototype.meetsConditions = function(page) {
 
     return true;
 };
+
+var Player = {};
+
+Player.goToMap = function(mapId, x, y, faceDir, fade){
+    const direction = {
+        "down": 2,
+        "left": 4,
+        "right": 6,
+        "up": 8,
+        "current": 0
+    };
+
+    const fadeType = {
+        "black": 0,
+        "white": 1,
+        "no": 2
+    }
+
+    $gamePlayer.reserveTransfer(mapId, x, y, direction[faceDir], fadeType[fade]);
+}
