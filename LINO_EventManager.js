@@ -169,6 +169,11 @@ Event.setSwitch = function(switchId, value)
     $gameSwitches.setValue(switchId, value);
 }
 
+Event.setSelfSwitch = function(argsArr, value)
+{
+    $gameSelfSwitches.setValue([argsArr[0], argsArr[1], argsArr[2]], value);
+}
+
 
 const _meetsConditions = Game_Event.prototype.meetsConditions; // cria cópia da meetsConditions.
 
@@ -328,6 +333,11 @@ Game_CharacterBase.prototype.applyPersistentData = function(data)
     this.setBlendMode(data.blendMode);
     this.setTransparent(data.transparent);
     this.setThrough(data.through);
+
+    //testar estes (tem que ver na documentação se existem):
+    this.setWalkAnime(data.walkAnime);
+    this.setStepAnime(data.stepAnime);
+    this.setDirectionFix(data.directionFix);
 };
 
 
