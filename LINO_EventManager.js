@@ -18,7 +18,8 @@ var params = PluginManager.parameters("LINO_EventManager"); // seleciona os par�
 var fileName = params["Dialogue Picker"]; // puxa o conteúdo da caixa de texto Dialogue Picker, da interface do plugin.
 var path = "data/dialogues/" + fileName + ".json"; // cria o caminho
 
-// helper que guardará todas as variáveis e métodos relacionados ao diálogo dos personagens.
+// Helper de diálogos:
+
 window.Dialog = {};
 
 Dialog.dialogs = null;
@@ -73,8 +74,16 @@ Dialog.resetEventDirectionFix = function (npc)
     };
 }
 
+// Ex.: $gameScreen.showPicture(1, "MyPicture", 0, 0, 0, 100, 100, 255, 0);
+Dialog.showPicture = function(pictureId, name, origin, x, y, scaleX, scaleY, opacity, blendMode) {
+    $gameScreen.showPicture(pictureId, name, origin, x, y, scaleX, scaleY, opacity, blendMode);
+}
+Dialog.erasePicture = function(pictureId) {
+    $gameScreen.erasePicture(pictureId);
+}
 
-// Métodos que envolvem ação de personagem, movimentos, etc.
+// Helper de ações e movimentos:
+
 var Action = {};
 
 //moveTo usa pathfinding do RPG Maker MV para encontrar o caminho.
@@ -162,6 +171,34 @@ Action.isOnLocation = function(npc, target)
 }
 
 
+// Helper de Player:
+
+var Player = {};
+
+Player.goToMap = function(mapId, x, y, faceDir, fade)
+{
+    const direction = 
+    {
+        "down": 2,
+        "left": 4,
+        "right": 6,
+        "up": 8,
+        "current": 0
+    };
+
+    const fadeType = 
+    {
+        "black": 0,
+        "white": 1,
+        "no": 2
+    }
+
+    $gamePlayer.reserveTransfer(mapId, x, y, direction[faceDir], fadeType[fade]);
+}
+
+
+// Helper de eventos:
+
 var Event = {};
 
 Event.setSwitch = function(switchId, value)
@@ -206,30 +243,6 @@ Game_Event.prototype.meetsConditions = function(page)
 
     return true;
 };
-
-var Player = {};
-
-Player.goToMap = function(mapId, x, y, faceDir, fade)
-{
-    const direction = 
-    {
-        "down": 2,
-        "left": 4,
-        "right": 6,
-        "up": 8,
-        "current": 0
-    };
-
-    const fadeType = 
-    {
-        "black": 0,
-        "white": 1,
-        "no": 2
-    }
-
-    $gamePlayer.reserveTransfer(mapId, x, y, direction[faceDir], fadeType[fade]);
-}
-
 
 // Métodos para certificar-se de que os eventos são persistentes em suas propriedades:
 
