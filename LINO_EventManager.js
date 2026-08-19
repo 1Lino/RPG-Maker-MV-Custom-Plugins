@@ -74,6 +74,7 @@ Dialog.resetEventDirectionFix = function (npc)
     };
 }
 
+// TODO: talvez seja interessante simplificar este método
 // Ex.: $gameScreen.showPicture(1, "MyPicture", 0, 0, 0, 100, 100, 255, 0);
 Dialog.showPicture = function(pictureId, name, origin, x, y, scaleX, scaleY, opacity, blendMode) {
     $gameScreen.showPicture(pictureId, name, origin, x, y, scaleX, scaleY, opacity, blendMode);
