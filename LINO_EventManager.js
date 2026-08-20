@@ -253,6 +253,8 @@ Game_Event.prototype.isPersistentEvent = function()
 {
     var list = this.list();
 
+    console.log(list);
+
     if (!list) return false;
 
     for (var i = 0; i < list.length; i++) 
@@ -273,48 +275,82 @@ Game_Event.prototype.isPersistentEvent = function()
     return false;
 };
 
-// savePersistentEvents é um evento customizado, ou seja, não é nativo de Game_System.prototype.
+// savePersistentEvent é um evento customizado, ou seja, não é nativo de Game_System.prototype.
 // basicamente ele salva a posição atual do evento, dentre outros detalhes, para que quando o mapa seja recarregado estes dados não
 // sejam resetados, mas se mantenham persistentes (no caso, o jogo deverá dar um "load" nestes dados persistentes).
 // deve ser usado após mudanças num evento.
+
 Game_System.prototype.savePersistentEvent = function() 
 {
     this._persistentEvents = this._persistentEvents || {};
 
     var mapId = $gameMap.mapId();
 
-    this._persistentEvents[mapId] = this._persistentEvents[mapId] || {};
+    // recria os dados deste mapa
+    this._persistentEvents[mapId] = {};
 
     $gameMap.events().forEach(function(event) 
     {
+        if (!event.isPersistentEvent()) {
+            return;
+        }
 
-        if (!event.isPersistentEvent()) return;
+        if (typeof event.makePersistentData !== "function") {
+            return;
+        }
 
-        this._persistentEvents[mapId][event.eventId()] = event.makePersistentData();
+        var data = event.makePersistentData();
+
+        if (data === undefined || data === null) {
+            return;
+        }
+
+        this._persistentEvents[mapId][event.eventId()] = data;
 
     }, this);
-
 };
 
+// método customizado responsável por restaurar os eventos persistentes do mapa toda vez que for carregado em Game_Map.prototype.setup.
 Game_Map.prototype.restorePersistentEvent = function() 
 {
+    // caso estes sistemas não estejam carregados, sai do método, pra evitar erro.
+    if (!$gameSystem || !$gameSystem._persistentEvents) {
+        return;
+    }
 
-    var mapData = $gameSystem._persistentEvents && $gameSystem._persistentEvents[this.mapId()];
+    var mapData = $gameSystem._persistentEvents[this.mapId()]; // carrega os dados do mapa atual.
 
-    if (!mapData) return;
+    if (!mapData) { // verifica se tais dados de fato existem
+        return;
+    }
 
     Object.keys(mapData).forEach(function(id) 
     {
+        var data = mapData[id];
+
+        // Para que não se tente restaurar dados inexistentes
+        if (data === undefined || data === null) {
+            return;
+        }
 
         var event = this.event(Number(id));
 
-        if (!event) return;
+        // se evento não existir no mapa atual
+        if (!event) {
+            return;
+        }
 
-        event.applyPersistentData(mapData[id]);
+        if (typeof event.applyPersistentData !== "function") {
+            return;
+        }
+
+        event.applyPersistentData(data);
 
     }, this);
-
 };
+
+
+
 
 // makePersistentData é um método customizado que retornar todas as características do evento, para que não seja necessário escrever
 // isso tudo na hora de chamar savePersistentePosition para o evento.
