@@ -26,74 +26,118 @@
 
             {
                 id: 1,
-
                 title: "Ratos no porão",
-
                 description:
                     "O taverneiro precisa de alguém para eliminar " +
                     "os ratos que infestaram o porão.",
-
-                reward: 100
+                reward: 100,
+                repeatable: true
             },
 
 
             {
                 id: 2,
-
                 title: "Ervas medicinais",
-
                 description:
                     "A curandeira precisa de cinco ervas medicinais " +
                     "encontradas na floresta.",
-
-                reward: 75
+                reward: 75,
+                repeatable: true
             },
 
 
             {
                 id: 3,
-
                 title: "O mercador desaparecido",
-
                 description:
                     "Um mercador não retornou de sua última viagem.\n" +
                     "Descubra o que aconteceu.",
-
-                reward: 250
+                reward: 250,
+                repeatable: false
             },
 
 
             {
                 id: 4,
-
                 title: "Lobos na estrada",
-
                 description:
                     "Alguns lobos estão atacando viajantes na estrada " +
                     "que leva até a cidade.",
-
-                reward: 300
+                reward: 300,
+                repeatable: true
             },
 
 
             {
                 id: 5,
-
                 title: "Entrega urgente",
-
                 description:
                     "Leve uma encomenda até a vila vizinha antes " +
                     "do anoitecer.",
-
-                reward: 150
+                reward: 150,
+                repeatable: true
             }
 
         ],
 
         // QUESTS DISPONÍVEIS
+        // getAvailableQuests: function() {
+        //     return this._quests.slice();
+        // },
         getAvailableQuests: function() {
-            return this._quests.slice();
+
+            var available = [];
+
+            for (var i = 0; i < this._quests.length; i++) {
+
+                var quest = this._quests[i];
+                var status =QuestJournal.getStatus(quest.id);
+
+                // Nunca aceita anteriormente.
+                if (!status) {
+                    available.push(quest);
+                    continue;
+                }
+
+                // Quest ativa não aparece.
+                if (status === "active") {
+                    continue;
+                }
+
+                // Quest concluída.
+                if (status === "completed") {
+                    if (quest.repeatable) {
+                        available.push(quest);
+                    }
+                    continue;
+                }
+
+                // Quest abandonada.
+                if (status === "abandoned") {
+                    available.push(quest);
+                    continue;
+                }
+
+                // Quest falhou.
+                if (status === "failed") {
+                    available.push(quest);
+                    continue;
+                }
+
+            }
+
+            return available;
         },
+
+        findQuestById: function(id) {
+            for (var i = 0; i < this._quests.length; i++) {
+                if (this._quests[i].id === id) {
+                    return this._quests[i];
+                }
+            }
+            return null;
+        },
+
 
         // SELECIONA QUESTS
         pickQuests: function(amount) {
@@ -413,16 +457,25 @@
             this._questDescription.setQuest(quest );
         };
 
-    // QUEST SELECIONADA
+
     Scene_QuestBoard.prototype.onQuestOk = function() {
-            var quest = this._questList.item();
 
-            if (!quest) return;
+        var quest = this._questList.item();
 
-            // Por enquanto apenas mostra uma mensagem.
-            $gameMessage.add("Quest selecionada: " + quest.title);
-            this.popScene();
-        };
+        if (!quest) return;
+
+        // Adiciona a quest ao diário.
+        QuestJournal.addQuest(quest);
+
+        // Mensagem.
+        $gameMessage.add(
+            "Nova quest adicionada: " + quest.title
+        );
+
+        this.popScene();
+
+    };
+
 
     // PLUGIN COMMAND
     var _Game_Interpreter_pluginCommand = Game_Interpreter.prototype.pluginCommand;
