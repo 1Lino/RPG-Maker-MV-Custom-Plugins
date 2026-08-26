@@ -16,479 +16,461 @@
  * ============================================================================
  */
 
-(function() {
-    "use strict";
+(function () {
+  "use strict";
 
-    // BANCO DE QUESTS (é apenas teste, mas _quests deverá ser transformado em JSON em breve)
-    var QuestBoard = {
+  // BANCO DE QUESTS (é apenas teste, mas _quests deverá ser transformado em JSON em breve)
+  var QuestBoard = {
+    _quests: [
+      {
+        id: 1,
+        title: "Ratos no porão",
+        description:
+          "O taverneiro precisa de alguém para eliminar " +
+          "os ratos que infestaram o porão.",
+        reward: 100,
+        repeatable: true,
+      },
 
-        _quests: [
+      {
+        id: 2,
+        title: "Ervas medicinais",
+        description:
+          "A curandeira precisa de cinco ervas medicinais " +
+          "encontradas na floresta.",
+        reward: 75,
+        repeatable: true,
+      },
 
-            {
-                id: 1,
-                title: "Ratos no porão",
-                description:
-                    "O taverneiro precisa de alguém para eliminar " +
-                    "os ratos que infestaram o porão.",
-                reward: 100,
-                repeatable: true
-            },
+      {
+        id: 3,
+        title: "O mercador desaparecido",
+        description:
+          "Um mercador não retornou de sua última viagem.\n" +
+          "Descubra o que aconteceu.",
+        reward: 250,
+        repeatable: false,
+      },
 
+      {
+        id: 4,
+        title: "Lobos na estrada",
+        description:
+          "Alguns lobos estão atacando viajantes na estrada " +
+          "que leva até a cidade.",
+        reward: 300,
+        repeatable: true,
+      },
 
-            {
-                id: 2,
-                title: "Ervas medicinais",
-                description:
-                    "A curandeira precisa de cinco ervas medicinais " +
-                    "encontradas na floresta.",
-                reward: 75,
-                repeatable: true
-            },
+      {
+        id: 5,
+        title: "Entrega urgente",
+        description:
+          "Leve uma encomenda até a vila vizinha antes " + "do anoitecer.",
+        reward: 150,
+        repeatable: true,
+      },
+    ],
 
+    // QUESTS DISPONÍVEIS
+    getAvailableQuests: function () {
+      var available = [];
 
-            {
-                id: 3,
-                title: "O mercador desaparecido",
-                description:
-                    "Um mercador não retornou de sua última viagem.\n" +
-                    "Descubra o que aconteceu.",
-                reward: 250,
-                repeatable: false
-            },
+      for (var i = 0; i < this._quests.length; i++) {
+        var quest = this._quests[i];
+        var status = QuestJournal.getStatus(quest.id);
 
-
-            {
-                id: 4,
-                title: "Lobos na estrada",
-                description:
-                    "Alguns lobos estão atacando viajantes na estrada " +
-                    "que leva até a cidade.",
-                reward: 300,
-                repeatable: true
-            },
-
-
-            {
-                id: 5,
-                title: "Entrega urgente",
-                description:
-                    "Leve uma encomenda até a vila vizinha antes " +
-                    "do anoitecer.",
-                reward: 150,
-                repeatable: true
-            }
-
-        ],
-
-        // QUESTS DISPONÍVEIS
-        // getAvailableQuests: function() {
-        //     return this._quests.slice();
-        // },
-        getAvailableQuests: function() {
-
-            var available = [];
-
-            for (var i = 0; i < this._quests.length; i++) {
-
-                var quest = this._quests[i];
-                var status =QuestJournal.getStatus(quest.id);
-
-                // Nunca aceita anteriormente.
-                if (!status) {
-                    available.push(quest);
-                    continue;
-                }
-
-                // Quest ativa não aparece.
-                if (status === "active") {
-                    continue;
-                }
-
-                // Quest concluída.
-                if (status === "completed") {
-                    if (quest.repeatable) {
-                        available.push(quest);
-                    }
-                    continue;
-                }
-
-                // Quest abandonada.
-                if (status === "abandoned") {
-                    available.push(quest);
-                    continue;
-                }
-
-                // Quest falhou.
-                if (status === "failed") {
-                    available.push(quest);
-                    continue;
-                }
-
-            }
-
-            return available;
-        },
-
-        findQuestById: function(id) {
-            for (var i = 0; i < this._quests.length; i++) {
-                if (this._quests[i].id === id) {
-                    return this._quests[i];
-                }
-            }
-            return null;
-        },
-
-
-        // SELECIONA QUESTS
-        pickQuests: function(amount) {
-
-            var available = this.getAvailableQuests();
-
-            // Embaralha a lista de quests.
-            for (var i = available.length - 1; i > 0; i--) {
-
-                var j = Math.floor(Math.random() * (i + 1));
-                var temp = available[i];
-
-                available[i] = available[j];
-                available[j] = temp;
-
-            }
-            return available.slice(0, amount);
-        },
-
-        // ABRE O QUADRO
-        open: function() {
-            var quests = this.pickQuests(3);
-            SceneManager.push(Scene_QuestBoard);
-            SceneManager.prepareNextScene(quests);
+        // Nunca aceita anteriormente.
+        if (!status) {
+          available.push(quest);
+          continue;
         }
 
-    };
+        // Quest ativa não aparece.
+        if (status === "active") {
+          continue;
+        }
 
+        // Quest concluída.
+        if (status === "completed") {
+          if (quest.repeatable) {
+            available.push(quest);
+          }
+          continue;
+        }
 
-    // Disponibiliza globalmente.
-    window.QuestBoard = QuestBoard;
+        // Quest abandonada.
+        if (status === "abandoned") {
+          available.push(quest);
+          continue;
+        }
 
-    // WINDOW QUEST LIST
-    function Window_QuestList() {
-        this.initialize.apply(this, arguments);
+        // Quest falhou.
+        if (status === "failed") {
+          available.push(quest);
+          continue;
+        }
+      }
+
+      return available;
+    },
+
+    findQuestById: function (id) {
+      for (var i = 0; i < this._quests.length; i++) {
+        if (this._quests[i].id === id) {
+          return this._quests[i];
+        }
+      }
+      return null;
+    },
+
+    // SELECIONA QUESTS
+    pickQuests: function (amount) {
+      var available = this.getAvailableQuests();
+
+      if (available.length === 0) {
+        return [];
+      }
+
+      for (var i = available.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+
+        var temp = available[i];
+
+        available[i] = available[j];
+
+        available[j] = temp;
+      }
+
+      return available.slice(0, amount);
+    },
+
+    // ABRE O QUADRO
+    open: function () {
+      var quests = this.pickQuests(3);
+      SceneManager.push(Scene_QuestBoard);
+      SceneManager.prepareNextScene(quests);
+    },
+  };
+
+  // Disponibiliza globalmente.
+  window.QuestBoard = QuestBoard;
+
+  // WINDOW QUEST LIST
+  function Window_QuestList() {
+    this.initialize.apply(this, arguments);
+  }
+
+  Window_QuestList.prototype = Object.create(Window_Selectable.prototype);
+
+  Window_QuestList.prototype.constructor = Window_QuestList;
+
+  Window_QuestList.prototype.initialize = function (quests) {
+    this._quests = quests || [];
+    var width = 360;
+
+    var height = this.fittingHeight(Math.max(1, this._quests.length));
+
+    Window_Selectable.prototype.initialize.call(this, 0, 0, width, height);
+
+    this.refresh();
+
+    if (this.maxItems() > 0) {
+      this.select(0);
+    } else {
+      this.deselect();
+    }
+  };
+
+  Window_QuestList.prototype.maxItems = function () {
+    return this._quests.length;
+  };
+
+  Window_QuestList.prototype.item = function () {
+    return this._quests[this.index()];
+  };
+
+  Window_QuestList.prototype.drawItem = function (index) {
+    var quest = this._quests[index];
+    if (!quest) return;
+
+    var rect = this.itemRectForText(index);
+
+    this.drawText(quest.title, rect.x, rect.y, rect.width);
+  };
+
+  Window_QuestList.prototype.refresh = function () {
+    this.contents.clear();
+
+    this.createContents();
+
+    // Nenhuma quest disponível.
+    if (this._quests.length === 0) {
+      this.changeTextColor(this.systemColor());
+
+      this.drawText(
+        "Nenhuma quest disponível.",
+        0,
+        0,
+        this.contentsWidth(),
+        "center",
+      );
+
+      this.resetTextColor();
+
+      return;
     }
 
-
-    Window_QuestList.prototype = Object.create(Window_Selectable.prototype);
-
-    Window_QuestList.prototype.constructor = Window_QuestList;
-
-
-    Window_QuestList.prototype.initialize = function(quests) {
-        this._quests = quests || [];
-        var width = 360;
-        var height = this.fittingHeight(Math.max(1, this._quests.length));
-
-        Window_Selectable.prototype.initialize.call(this, 0, 0, width, height);
-
-        this.refresh();
-        this.select(0);
-    };
-
-
-    Window_QuestList.prototype.maxItems = function() {
-        return this._quests.length;
-    };
-
-
-    Window_QuestList.prototype.item = function() {
-        return this._quests[this.index()];
-    };
-
-
-    Window_QuestList.prototype.drawItem = function(index) {
-        var quest = this._quests[index];
-        if (!quest) return;
-
-        var rect = this.itemRectForText(index);
-
-        this.drawText(quest.title, rect.x, rect.y, rect.width);
-    };
-
-
-    Window_QuestList.prototype.refresh = function() {
-        this.contents.clear();
-        this.createContents();
-
-        for (var i = 0; i < this._quests.length; i++) {
-            this.drawItem(i);
-        }
-    };
-
-    // WINDOW QUEST DESCRIPTION
-    function Window_QuestDescription() {
-        this.initialize.apply(this, arguments);
+    // Desenha as quests.
+    for (var i = 0; i < this._quests.length; i++) {
+      this.drawItem(i);
     }
+  };
 
+  // WINDOW QUEST DESCRIPTION
+  function Window_QuestDescription() {
+    this.initialize.apply(this, arguments);
+  }
 
-    Window_QuestDescription.prototype = Object.create(Window_Base.prototype);
+  Window_QuestDescription.prototype = Object.create(Window_Base.prototype);
+  Window_QuestDescription.prototype.constructor = Window_QuestDescription;
 
-    Window_QuestDescription.prototype.constructor = Window_QuestDescription;
+  Window_QuestDescription.prototype.initialize = function () {
+    this._quest = null;
+    this._width = Graphics.boxWidth - 360;
+    this._x = 360;
+    this._y = 0;
 
+    // Altura inicial.
+    this._height = this.fittingHeight(6);
 
-    Window_QuestDescription.prototype.initialize = function() {
-        this._quest = null;
-        this._width = Graphics.boxWidth - 360;
-        this._x = 360;
-        this._y = 0;
+    Window_Base.prototype.initialize.call(
+      this,
+      this._x,
+      this._y,
+      this._width,
+      this._height,
+    );
+  };
 
-        // Altura inicial.
-        this._height = this.fittingHeight(6);
+  // DEFINE A QUEST
+  Window_QuestDescription.prototype.setQuest = function (quest) {
+    if (this._quest === quest) return;
+    this._quest = quest;
 
-        Window_Base.prototype.initialize.call(
-            this,
-            this._x,
-            this._y,
-            this._width,
-            this._height
-        );
+    this.refresh();
+  };
 
-    };
+  // CALCULA QUEBRAS DE LINHA
+  Window_QuestDescription.prototype.wrapText = function (text, width) {
+    var lines = [];
 
-    // DEFINE A QUEST
-    Window_QuestDescription.prototype.setQuest = function(quest) {
-        if (this._quest === quest) return;
-        this._quest = quest;
+    // Permite \n manual.
+    var paragraphs = String(text).split("\n");
 
-        this.refresh();
-    };
+    for (var p = 0; p < paragraphs.length; p++) {
+      var paragraph = paragraphs[p];
 
-    // CALCULA QUEBRAS DE LINHA
-    Window_QuestDescription.prototype.wrapText = function(text, width) {
+      // Linha vazia.
+      if (paragraph.length === 0) {
+        lines.push("");
+        continue;
+      }
 
-        var lines = [];
+      var words = paragraph.split(" ");
+      var line = "";
 
-        // Permite \n manual.
-        var paragraphs = String(text).split("\n");
+      for (var i = 0; i < words.length; i++) {
+        var word = words[i];
+        var testLine = line;
 
-        for (var p = 0; p < paragraphs.length; p++) {
-
-            var paragraph = paragraphs[p];
-
-            // Linha vazia.
-            if (paragraph.length === 0) {
-                lines.push("");
-                continue;
-            }
-
-            var words = paragraph.split(" ");
-            var line = "";
-
-            for (var i = 0; i < words.length; i++) {
-
-                var word = words[i];
-                var testLine = line;
-
-                if (testLine.length > 0) {
-                    testLine += " ";
-                }
-
-                testLine += word;
-
-                // Se a palavra sozinha for maior que a largura,
-                // ainda assim deixamos ela ocupar a linha.
-                if ( this.textWidth(testLine) > width && line.length > 0) {
-                    lines.push(line);
-                    line = word;
-                } else {
-                    line = testLine;
-                }
-            }
-
-
-            if (line.length > 0) {
-                lines.push(line);
-            }
-        }
-        return lines;
-    };
-
-    // CALCULA ALTURA NECESSÁRIA
-    Window_QuestDescription.prototype.calculateHeight = function(lines) {
-
-            var padding = this.padding * 2;
-            var titleHeight = this.lineHeight();
-
-            var descriptionHeight = lines.length * this.lineHeight();
-            var spacing = 16;
-            var rewardHeight =this.lineHeight();
-
-            var total =
-                padding +
-                titleHeight +
-                spacing +
-                descriptionHeight +
-                spacing +
-                rewardHeight;
-
-            // Mantém a janela dentro da tela.
-            var maxHeight = Graphics.boxHeight;
-
-            return Math.min(total, maxHeight);
-        };
-
-    // REFRESH
-    Window_QuestDescription.prototype.refresh = function() {
-
-        // Se não houver quest.
-        if (!this._quest) {
-            this.contents.clear();
-            return;
+        if (testLine.length > 0) {
+          testLine += " ";
         }
 
-        var quest = this._quest;
-        var width = this.contentsWidth();
+        testLine += word;
 
-        // Calcula linhas da descrição.
-        var lines = this.wrapText(quest.description, width);
-
-        // Calcula altura.
-        var newHeight = this.calculateHeight(lines);
-
-        // Redimensiona a janela.
-        if (this.height !== newHeight) {
-            this.height = newHeight;
-            this.createContents();
+        // Se a palavra sozinha for maior que a largura,
+        // ainda assim deixamos ela ocupar a linha.
+        if (this.textWidth(testLine) > width && line.length > 0) {
+          lines.push(line);
+          line = word;
         } else {
-            this.contents.clear();
+          line = testLine;
         }
+      }
 
-        // TÍTULO
-        var x = 0;
-        var y = 0;
+      if (line.length > 0) {
+        lines.push(line);
+      }
+    }
+    return lines;
+  };
 
-        this.changeTextColor( this.systemColor());
-        this.drawText(quest.title, x, y, width);
-        this.resetTextColor();
+  // CALCULA ALTURA NECESSÁRIA
+  Window_QuestDescription.prototype.calculateHeight = function (lines) {
+    var padding = this.padding * 2;
+    var titleHeight = this.lineHeight();
 
-        y += this.lineHeight();
-        y += 8;
+    var descriptionHeight = lines.length * this.lineHeight();
+    var spacing = 16;
+    var rewardHeight = this.lineHeight();
 
-        // DESCRIÇÃO
-        for (var i = 0; i < lines.length; i++) {
-            this.drawText(lines[i], x, y, width);
-            y += this.lineHeight();
-        }
+    var total =
+      padding +
+      titleHeight +
+      spacing +
+      descriptionHeight +
+      spacing +
+      rewardHeight;
 
-        // RECOMPENSA
-        y += 8;
+    // Mantém a janela dentro da tela.
+    var maxHeight = Graphics.boxHeight;
 
-        this.changeTextColor( this.systemColor() );
-        this.drawText("Recompensa: ", x, y, 120);
-        this.resetTextColor();
+    return Math.min(total, maxHeight);
+  };
 
-        this.drawText(
-            String(quest.reward) + " G",
-            120,
-            y,
-            width - 120
-        );
-    };
-
-    // SCENE QUEST BOARD
-    function Scene_QuestBoard() {
-        this.initialize.apply(this, arguments);
+  // REFRESH
+  Window_QuestDescription.prototype.refresh = function () {
+    // Se não houver quest.
+    if (!this._quest) {
+      this.contents.clear();
+      return;
     }
 
-    Scene_QuestBoard.prototype = Object.create(Scene_MenuBase.prototype);
-    Scene_QuestBoard.prototype.constructor = Scene_QuestBoard;
+    var quest = this._quest;
+    var width = this.contentsWidth();
 
-    Scene_QuestBoard.prototype.initialize = function() {
-        Scene_MenuBase.prototype.initialize.call(this);
-        this._quests = [];
-    };
+    // Calcula linhas da descrição.
+    var lines = this.wrapText(quest.description, width);
 
-    Scene_QuestBoard.prototype.prepare = function(quests) {
-        this._quests = quests || [];
-    };
+    // Calcula altura.
+    var newHeight = this.calculateHeight(lines);
 
+    // Redimensiona a janela.
+    if (this.height !== newHeight) {
+      this.height = newHeight;
+      this.createContents();
+    } else {
+      this.contents.clear();
+    }
 
-    Scene_QuestBoard.prototype.create = function() {
-        Scene_MenuBase.prototype.create.call(this);
-        this.createQuestWindows();
-    };
+    // TÍTULO
+    var x = 0;
+    var y = 0;
 
+    this.changeTextColor(this.systemColor());
+    this.drawText(quest.title, x, y, width);
+    this.resetTextColor();
 
-    Scene_QuestBoard.prototype.createQuestWindows = function() {
+    y += this.lineHeight();
+    y += 8;
 
-        this._questList = new Window_QuestList(this._quests);
-        this._questDescription = new Window_QuestDescription();
-        this.addWindow(this._questList);
+    // DESCRIÇÃO
+    for (var i = 0; i < lines.length; i++) {
+      this.drawText(lines[i], x, y, width);
+      y += this.lineHeight();
+    }
 
-        this.addWindow(this._questDescription);
-        var scene = this;
+    // RECOMPENSA
+    y += 8;
 
-        // ENTER
-        this._questList.setHandler(
-            "ok",
-            function() {
-                scene.onQuestOk();
-            }
-        );
+    this.changeTextColor(this.systemColor());
+    this.drawText("Recompensa: ", x, y, 120);
+    this.resetTextColor();
 
-        // ESC
-        this._questList.setHandler(
-            "cancel",
-            function() {
-                scene.popScene();
-            }
-        );
+    this.drawText(String(quest.reward) + " G", 120, y, width - 120);
+  };
 
-        this._questList.activate();
-        this.updateQuestDescription();
-    };
+  // SCENE QUEST BOARD
+  function Scene_QuestBoard() {
+    this.initialize.apply(this, arguments);
+  }
 
-    // UPDATE
-    Scene_QuestBoard.prototype.update = function() {
-        Scene_MenuBase.prototype.update.call(this);
-        this.updateQuestDescription();
-    };
+  Scene_QuestBoard.prototype = Object.create(Scene_MenuBase.prototype);
+  Scene_QuestBoard.prototype.constructor = Scene_QuestBoard;
 
-    // ATUALIZA DESCRIÇÃO
-    Scene_QuestBoard.prototype.updateQuestDescription = function() {
-            var quest = this._questList.item();
-            this._questDescription.setQuest(quest );
-        };
+  Scene_QuestBoard.prototype.initialize = function () {
+    Scene_MenuBase.prototype.initialize.call(this);
+    this._quests = [];
+  };
 
+  Scene_QuestBoard.prototype.prepare = function (quests) {
+    this._quests = quests || [];
+  };
 
-    Scene_QuestBoard.prototype.onQuestOk = function() {
+  Scene_QuestBoard.prototype.create = function () {
+    Scene_MenuBase.prototype.create.call(this);
+    this.createQuestWindows();
+  };
 
-        var quest = this._questList.item();
+  Scene_QuestBoard.prototype.createQuestWindows = function () {
+    this._questList = new Window_QuestList(this._quests);
 
-        if (!quest) return;
+    this._questDescription = new Window_QuestDescription();
 
-        // Adiciona a quest ao diário.
-        QuestJournal.addQuest(quest);
+    this.addWindow(this._questList);
+    this.addWindow(this._questDescription);
+    var scene = this;
 
-        // Mensagem.
-        $gameMessage.add(
-            "Nova quest adicionada: " + quest.title
-        );
+    // ENTER
+    this._questList.setHandler("ok", function () {
+      scene.onQuestOk();
+    });
 
-        this.popScene();
+    // ESC
+    this._questList.setHandler("cancel", function () {
+      scene.popScene();
+    });
 
-    };
+    // Ativa somente se houver quests.
+    this._questList.activate();
 
+    this.updateQuestDescription();
+  };
 
-    // PLUGIN COMMAND
-    var _Game_Interpreter_pluginCommand = Game_Interpreter.prototype.pluginCommand;
+  // UPDATE
+  Scene_QuestBoard.prototype.update = function () {
+    Scene_MenuBase.prototype.update.call(this);
+    this.updateQuestDescription();
+  };
 
-    Game_Interpreter.prototype.pluginCommand = function(command, args) {
-            _Game_Interpreter_pluginCommand.call(this, command, args);
+  // ATUALIZA DESCRIÇÃO
+  Scene_QuestBoard.prototype.updateQuestDescription = function () {
+    var quest = this._questList.item();
+    this._questDescription.setQuest(quest);
+  };
 
-            if (command.toLowerCase() === "questboard") {
-                if (args[0] && args[0].toLowerCase() === "open") {
-                    QuestBoard.open();
-                }
-            }
-        };
+  Scene_QuestBoard.prototype.onQuestOk = function () {
+    var quest = this._questList.item();
 
-//END
+    // Não existe quest selecionada.
+    if (!quest) {
+      SoundManager.playBuzzer();
+      this.popScene();
+      return;
+    }
+
+    QuestJournal.addQuest(quest);
+
+    $gameMessage.add("Nova quest adicionada: " + quest.title);
+
+    this.popScene();
+  };
+
+  // PLUGIN COMMAND
+  var _Game_Interpreter_pluginCommand =
+    Game_Interpreter.prototype.pluginCommand;
+
+  Game_Interpreter.prototype.pluginCommand = function (command, args) {
+    _Game_Interpreter_pluginCommand.call(this, command, args);
+
+    if (command.toLowerCase() === "questboard") {
+      if (args[0] && args[0].toLowerCase() === "open") {
+        QuestBoard.open();
+      }
+    }
+  };
+
+  //END
 })();
