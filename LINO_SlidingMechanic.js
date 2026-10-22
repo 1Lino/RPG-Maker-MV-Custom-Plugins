@@ -1,18 +1,25 @@
 /*:
  * @plugindesc Mecânica simples de sliding em superfícies com obstáculos. Mais apropriada para superfícies congeladas ou escorregadias.
  * @author Lino
- * @help V0.1.1
+ * @help V1.0
  * Para utilizar este plugin, crie um evento paralelo no seu mapa,
  * passando então o seguinte comando à primeira linha da primeira página do
  * evento: slide start
  *
  * Após isto, certifique-se de que as regiões de deslizamento do mapa sejam
  * marcadas com 1.
+ *
+ * @param Sliding Region
+ * @type number
+ * @desc Insira o Id que você usa para a região de deslizamento no mapa.
  */
 
+// TODO: verei se é melhor fazer o comando "slide start" ser chamado numa nota do mapa, ao invés de em evento.
 (function () {
-  var _onMapLoaded = Scene_Map.prototype.onMapLoaded;
+  var params = PluginManager.parameters("LINO_SlidingMechanic");
+  var slidingRegionId = params["Sliding Region"] ? params["Sliding Region"] : 1;
 
+  var _onMapLoaded = Scene_Map.prototype.onMapLoaded;
   // Para que o código rode somente quando o mapa for carregado:
   Scene_Map.prototype.onMapLoaded = function () {
     _onMapLoaded.call(this);
@@ -28,21 +35,37 @@
         if (args[0] && args[0].trim().toLowerCase() === "start") {
           // Nota 1
           if (
-            $gamePlayer.regionId() === 1 &&
+            $gamePlayer.regionId() === slidingRegionId &&
             !$gamePlayer.isMoveRouteForcing()
           ) {
-            // Ver a partir da linha 6840 do arquivo rpg_objects.js, na pasta do projeto, para todos os códigos de rota.
+            var playerDir = $gamePlayer.direction();
+            var routeCode = null;
+
+            if ($gamePlayer.canPass($gamePlayer.x, $gamePlayer.y, playerDir)) {
+              routeCode = 12; // 12 = Game_Character.ROUTE_MOVE_FORWARD
+            } else {
+              // Sobre a implementação de Input.isPressed e relacionados, ver linha 3197 de rpg_core.js do seu projeto.
+              if (Input.isPressed("left")) {
+                routeCode = 2;
+              } else if (Input.isPressed("right")) {
+                routeCode = 3;
+              } else if (Input.isPressed("up")) {
+                routeCode = 4;
+              } else if (Input.isPressed("down")) {
+                routeCode = 1;
+              }
+            }
+
             $gamePlayer.forceMoveRoute({
               list: [
                 { code: 32, parameters: [] }, // Game_Character.ROUTE_WALK_ANIME_OFF
-                { code: 12, parameters: [] }, // Game_Character.ROUTE_MOVE_FORWARD
+                { code: routeCode, parameters: [] },
                 { code: 0, parameters: [] },
               ],
-              repeat: false,
-              skippable: true,
               wait: true,
             });
-          } else if ($gamePlayer.regionId() !== 1) {
+            // END
+          } else if ($gamePlayer.regionId() !== slidingRegionId) {
             $gamePlayer.setWalkAnime(true); // se o jogador sair da região de deslize, reativa animação de andar.
           }
         }
